@@ -8,27 +8,167 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 from fsm import TocMachine
-from utils import send_text_message
+from utils import send_text_message, send_button_message
 
 load_dotenv()
 
 
 machine = TocMachine(
-    states=["user", "state1", "state2"],
+    states=["user", "main", "menu",  "pls_ans", "name", "phone", "people", "date", "time",
+            "success", "kong_rou", "fish", "bye_good", "chicken"],
     transitions=[
         {
             "trigger": "advance",
             "source": "user",
-            "dest": "state1",
-            "conditions": "is_going_to_state1",
+            "dest": "main",
+            "conditions": "is_going_to_main",
         },
         {
             "trigger": "advance",
-            "source": "user",
-            "dest": "state2",
-            "conditions": "is_going_to_state2",
+            "source": "main",
+            "dest": "menu",
+            "conditions": "is_going_to_menu",
         },
-        {"trigger": "go_back", "source": ["state1", "state2"], "dest": "user"},
+        {
+            "trigger": "advance",
+            "source": "menu",
+            "dest": "main",
+            "conditions": "is_going_to_main_for_menu",
+        },
+        {
+            "trigger": "advance",
+            "source": "menu",
+            "dest": "kong_rou",
+            "conditions": "is_going_to_kong_rou",
+        },
+        {
+            "trigger": "advance",
+            "source": "menu",
+            "dest": "fish",
+            "conditions": "is_going_to_fish",
+        },
+        {
+            "trigger": "advance",
+            "source": "menu",
+            "dest": "bye_good",
+            "conditions": "is_going_to_bye_good",
+        },
+        {
+            "trigger": "advance",
+            "source": "menu",
+            "dest": "chicken",
+            "conditions": "is_going_to_chicken",
+        },
+        {
+            "trigger": "advance",
+            "source": "main",
+            "dest": "pls_ans",
+            "conditions": "is_going_to_pls_ans",
+        },
+        {
+            "trigger": "advance",
+            "source": "pls_ans",
+            "dest": "main",
+            "conditions": "is_going_to_main",
+        },
+        {
+            "trigger": "advance",
+            "source": "pls_ans",
+            "dest": "name",
+            "conditions": "is_going_to_name",
+        },
+        {
+            "trigger": "advance",
+            "source": "name",
+            "dest": "pls_ans",
+            "conditions": "is_going_to_write_again",
+        },
+        {
+            "trigger": "advance",
+            "source": "name",
+            "dest": "main",
+            "conditions": "is_going_to_main",
+        },
+        {
+            "trigger": "advance",
+            "source": "name",
+            "dest": "phone",
+            "conditions": "is_going_to_phone",
+        },
+        {
+            "trigger": "advance",
+            "source": "phone",
+            "dest": "main",
+            "conditions": "is_going_to_main",
+        },
+        {
+            "trigger": "advance",
+            "source": "phone",
+            "dest": "name",
+            "conditions": "is_going_to_write_again",
+        },
+        {
+            "trigger": "advance",
+            "source": "phone",
+            "dest": "people",
+            "conditions": "is_going_to_people",
+        },
+        {
+            "trigger": "advance",
+            "source": "people",
+            "dest": "main",
+            "conditions": "is_going_to_main",
+        },
+        {
+            "trigger": "advance",
+            "source": "people",
+            "dest": "phone",
+            "conditions": "is_going_to_write_again",
+        },
+        {
+            "trigger": "advance",
+            "source": "people",
+            "dest": "date",
+            "conditions": "is_going_to_date",
+        },
+        {
+            "trigger": "advance",
+            "source": "date",
+            "dest": "people",
+            "conditions": "is_going_to_write_again",
+        },
+        {
+            "trigger": "advance",
+            "source": "date",
+            "dest": "main",
+            "conditions": "is_going_to_main",
+        },
+        {
+            "trigger": "advance",
+            "source": "date",
+            "dest": "time",
+            "conditions": "is_going_to_time",
+        },
+        {
+            "trigger": "advance",
+            "source": "time",
+            "dest": "main",
+            "conditions": "is_going_to_main",
+        },
+        {
+            "trigger": "advance",
+            "source": "time",
+            "dest": "date",
+            "conditions": "is_going_to_write_again",
+        },
+        {
+            "trigger": "advance",
+            "source": "time",
+            "dest": "success",
+            "conditions": "is_going_to_success",
+        },
+        {"trigger": "go_back", "source": ["success"], "dest": "user"},
+        {"trigger": "go_to_menu", "source": ["kong_rou", "fish", "bye_good", "chicken"], "dest": "menu"},
     ],
     initial="user",
     auto_transitions=False,
@@ -103,7 +243,12 @@ def webhook_handler():
         print(f"\nFSM STATE: {machine.state}")
         print(f"REQUEST BODY: \n{body}")
         response = machine.advance(event)
-        if response == False:
+        if ((response == False) and (machine.state == "phone")):
+            send_text_message(event.reply_token, "請輸入正確電話號碼")
+        elif ((response == False) and (machine.state == "people")):
+            send_text_message(event.reply_token, "請輸入正確人數(1~3位)")
+        
+        elif response == False:
             send_text_message(event.reply_token, "Not Entering any State")
 
     return "OK"
